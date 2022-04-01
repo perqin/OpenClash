@@ -39,7 +39,7 @@ jobs:
         with:
           path: 'luci-app-openclash'
       - name: Build package
-        run: cd luci-app-openclash && sh compile.sh
+        run: cd luci-app-openclash && bash compile.sh
         env:
           sdk_home_dir: ${{ github.workspace }}/sdk/sdk/${{ env.TARGET_VERSION }}/${{ env.TARGET_NAME }}
       - name: Archive ipk
