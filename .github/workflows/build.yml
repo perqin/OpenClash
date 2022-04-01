@@ -1,0 +1,51 @@
+name: Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        # Only siflower-1806 (sf1200/sft1200) is tested; See https://github.com/gl-inet/sdk/blob/master/download.sh#L16-L24 for the full targets list
+        target: ['siflower-1806']
+    steps:
+      - name: Setup environment variable
+        run: |
+          echo TARGET_VERSION="${TARGET#*-}" >> $GITHUB_ENV
+          echo TARGET_NAME="${TARGET%-*}" >> $GITHUB_ENV
+        env:
+          TARGET: ${{ matrix.target }}
+      - name: Checkout SDK
+        uses: actions/checkout@v2
+        with:
+          repository: 'gl-inet/sdk'
+          path: 'sdk'
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt upgrade -y
+          sudo apt install asciidoc bash bc binutils bzip2 fastjar flex gawk \
+          gcc genisoimage gettext git intltool jikespg libgtk2.0-dev \
+          libncurses5-dev libssl1.0-dev make mercurial patch perl-modules \
+          python2.7-dev rsync ruby sdcc subversion unzip util-linux wget \
+          xsltproc zlib1g-dev zlib1g-dev -y
+      - name: Download SDK
+        run: cd sdk && ./download.sh $TARGET_NAME-$TARGET_VERSION
+      - name: Checkout package
+        uses: actions/checkout@v2
+        with:
+          path: 'luci-app-openclash'
+      - name: Build package
+        run: cd luci-app-openclash && sh compile.sh
+        env:
+          sdk_home_dir: ${{ github.workspace }}/sdk/sdk/${{ env.TARGET_VERSION }}/${{ env.TARGET_NAME }}
+      - name: Archive ipk
+        uses: actions/upload-artifact@v2
+        with:
+          if-no-files-found: error
+          name: luci-app-openclash
+          path: |
+            luci-app-openclash/*.ipk
